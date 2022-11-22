@@ -12,7 +12,7 @@ reference:
 The `language identification model`_ support the language codes (ISO-639-3)::
 
    af als am an ar arz as ast av az azb ba bar bcl be bg bh bn bo bpy br bs bxr
-   ca cbk ce ceb ckb co cs cv cy da de diq dsb dty dv el eml en eo es et eu fa
+   ca cbk ceceb ckb co cs cv cy da de diq dsb dty dv el eml en eo es et eu fa
    fi fr frr fy ga gd gl gn gom gu gv he hi hif hr hsb ht hu hy ia id ie ilo io
    is it ja jbo jv ka kk km kn ko krc ku kv kw ky la lb lez li lmo lo lrc lt lv
    mai mg mhr min mk ml mn mr mrj ms mt mwl my myv mzn nah nap nds ne new nl nn
@@ -67,6 +67,8 @@ that is identified as an English term (try ``:de-DE thermomix``, for example).
 
 from flask_babel import gettext
 import babel
+import fasttext
+import os
 
 from searx.utils import detect_language
 from searx.languages import language_codes
@@ -76,6 +78,19 @@ name = gettext('Autodetect search language')
 description = gettext('Automatically detect the query search language and switch to it.')
 preference_section = 'general'
 default_on = False
+
+
+fasttext.FastText.eprint = lambda x: None
+model = None
+
+
+def _load_model():
+    """Lazy load the fasttext model"""
+    global model
+    if model is None:
+        model_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'lid.176.ftz')
+        model = fasttext.load_model(model_path)
+
 
 supported_langs = set()
 """Languages supported by most searxng engines (:py:obj:`searx.languages.language_codes`)."""
@@ -95,4 +110,4 @@ def pre_search(request, search):  # pylint: disable=unused-argument
 def init(app, settings):  # pylint: disable=unused-argument
     for searxng_locale in language_codes:
         supported_langs.add(searxng_locale[0].split('-')[0])
-    return True
+    _load_model()

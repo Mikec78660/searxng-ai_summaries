@@ -508,6 +508,18 @@ class Preferences:
                 '',
                 locked=is_locked('ai_num_results')
             ),
+            'ai_timeout_per_result': StringSetting(
+                '5',
+                locked=is_locked('ai_timeout_per_result')
+            ),
+            'ai_max_tokens': StringSetting(
+                '500',
+                locked=is_locked('ai_max_tokens')
+            ),
+            'ai_system_prompt': StringSetting(
+                'You are a helpful assistant that summarizes search results. We are looking for this information {query} Provide a concise summary of the search results in no more than 2-3 paragraphs from these web pages: {results}. Focus on the most relevant information.',
+                locked=is_locked('ai_system_prompt')
+            ),
             # fmt: on
         }
 

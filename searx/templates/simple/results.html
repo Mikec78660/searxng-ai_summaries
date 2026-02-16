@@ -41,8 +41,8 @@
           </div>
         {%- endif -%}
 
-        <div id="ai-summary-sidebar" data-config='{{ ai_config | tojson }}'>
-          <details id="ai-summary-toggle" class="sidebar-collapsible" open>
+        <div id="ai-summary-sidebar" data-enabled="{{ ai_config.enabled }}" data-config='{{ ai_config | tojson }}'>
+          <details id="ai-summary-toggle" class="sidebar-collapsible" {% if ai_config.enabled %}open{% endif %}>
             <summary class="title">
               <span id="ai-summary-title">{{ _('AI Summary') }}</span>
               <span id="ai-summary-status"></span>
@@ -182,46 +182,38 @@
   var toggle = document.getElementById('ai-summary-toggle');
   var content = document.getElementById('ai-summary-content');
   var status = document.getElementById('ai-summary-status');
+  var isEnabled = sidebarEl.dataset.enabled && sidebarEl.dataset.enabled.toLowerCase() !== 'false';
 
   var aiConfig = {};
   try {
     aiConfig = JSON.parse(sidebarEl.dataset.config || '{}');
-    console.log('AI Config:', aiConfig);
   } catch (e) {
-    console.error('Failed to parse AI config:', e);
     return;
   }
 
   if (!aiConfig.endpoint || !aiConfig.model) {
-    console.log('AI config missing - endpoint:', aiConfig.endpoint, 'model:', aiConfig.model);
     content.innerHTML = '<p class="ai-summary-placeholder">{{ _("AI summary is not configured. Set up API endpoint and model in preferences.") }}</p>';
     return;
   }
 
-  console.log('AI config looks good, checking toggle state...');
-  console.log('toggle.open:', toggle.open);
-  console.log('content.dataset.generated:', content.dataset.generated);
-
   toggle.addEventListener('toggle', function(e) {
-    console.log('Toggle event, open:', toggle.open);
+    // If opening toggle and no summary yet, generate one
     if (toggle.open && !content.dataset.generated) {
+      // Generate even if disabled in preferences (user manually opened)
       generateSummary();
     }
   });
 
-  if (toggle.open && !content.dataset.generated) {
-    console.log('Calling generateSummary directly...');
+  if (toggle.open && !content.dataset.generated && isEnabled) {
     generateSummary();
   }
 
   function generateSummary() {
-    console.log('Generating summary with config:', aiConfig);
     content.innerHTML = '<p class="ai-summary-loading">{{ _("Generating summary...") }}</p>';
     status.innerHTML = '<span class="loading-spinner"></span>';
 
     var searchResults = [];
     var resultsContainer = document.querySelectorAll('#urls .result');
-    console.log('Found results:', resultsContainer.length);
     
     resultsContainer.forEach(function(result, index) {
       if (aiConfig.num_results && index >= aiConfig.num_results) return;
@@ -236,8 +228,6 @@
         url: urlEl ? urlEl.textContent : ''
       });
     });
-    
-    console.log('Search results to summarize:', searchResults);
 
     fetch('{{ url_for('generate_summary') }}', {
       method: 'POST',

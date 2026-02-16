@@ -787,7 +787,10 @@ def search():
             "endpoint": sxng_request.preferences.get_value("ai_api_endpoint"),
             "model": sxng_request.preferences.get_value("ai_model"),
             "api_key": sxng_request.preferences.get_value("ai_api_key"),
-            "num_results": int(sxng_request.preferences.get_value("ai_num_results")) if sxng_request.preferences.get_value("ai_num_results") else 5
+            "num_results": int(sxng_request.preferences.get_value("ai_num_results")) if sxng_request.preferences.get_value("ai_num_results") else 5,
+            "timeout_per_result": int(sxng_request.preferences.get_value("ai_timeout_per_result")) if sxng_request.preferences.get_value("ai_timeout_per_result") else 5,
+            "max_tokens": int(sxng_request.preferences.get_value("ai_max_tokens")) if sxng_request.preferences.get_value("ai_max_tokens") else 500,
+            "system_prompt": sxng_request.preferences.get_value("ai_system_prompt") or ""
         }
         # fmt: on
     )
@@ -815,8 +818,11 @@ def generate_summary():
     endpoint = sxng_request.preferences.get_value("ai_api_endpoint") if sxng_request.preferences else ""
     model = sxng_request.preferences.get_value("ai_model") if sxng_request.preferences else ""
     api_key = sxng_request.preferences.get_value("ai_api_key") if sxng_request.preferences else ""
-    num_results = int(sxng_request.preferences.get_value("ai_num_results") or 5) if sxng_request.preferences else 5
-    timeout = 15 + (5 * num_results)
+    num_results = int(sxng_request.preferences.get_value("ai_num_results")) if sxng_request.preferences and sxng_request.preferences.get_value("ai_num_results") else 5
+    timeout_per_result = int(sxng_request.preferences.get_value("ai_timeout_per_result")) if sxng_request.preferences and sxng_request.preferences.get_value("ai_timeout_per_result") else 5
+    max_tokens = int(sxng_request.preferences.get_value("ai_max_tokens")) if sxng_request.preferences and sxng_request.preferences.get_value("ai_max_tokens") else 500
+    system_prompt = sxng_request.preferences.get_value("ai_system_prompt") if sxng_request.preferences else ""
+    timeout = 15 + (timeout_per_result * num_results)
 
     if not endpoint or not model:
         return jsonify({"success": False, "summary": None, "stats": None, "error": "AI summarizer not configured"}), 503
@@ -830,6 +836,8 @@ def generate_summary():
             model=model,
             api_key=api_key,
             timeout=timeout,
+            max_tokens=max_tokens,
+            system_prompt=system_prompt if system_prompt else None,
         )
         return jsonify({
             "success": result.get("success", False),

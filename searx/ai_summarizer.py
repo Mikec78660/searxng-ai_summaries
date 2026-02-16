@@ -272,6 +272,11 @@ def generate_summary_sync(
     # Use default system prompt if none provided
     if system_prompt is None:
         system_prompt = DEFAULT_SYSTEM_PROMPT
+    
+    if '{query}' in system_prompt:
+        system_prompt = system_prompt.replace('{query}', query)
+    if '{results}' in system_prompt:
+        system_prompt = system_prompt.replace('{results}', formatted_results)
 
     payload = {
         "model": model,

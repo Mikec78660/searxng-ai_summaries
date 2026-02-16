@@ -76,6 +76,51 @@
   </div>{{- '' -}}
 </fieldset>{{- '' -}}
 
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_timeout_per_result">{{ _('Timeout per Result (seconds)') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <input name="ai_timeout_per_result" {{- ' ' -}}
+           aria-labelledby="pref_ai_timeout_per_result" {{- ' ' -}}
+           type="number" {{- ' ' -}}
+           min="1" {{- ' ' -}}
+           max="30" {{- ' ' -}}
+           value='{{ preferences.get_value('ai_timeout_per_result') }}'>{{- '' -}}
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('Seconds to add to timeout per result (1-30)') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_max_tokens">{{ _('Max Response Tokens') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <input name="ai_max_tokens" {{- ' ' -}}
+           aria-labelledby="pref_ai_max_tokens" {{- ' ' -}}
+           type="number" {{- ' ' -}}
+           min="100" {{- ' ' -}}
+           max="4000" {{- ' ' -}}
+           value='{{ preferences.get_value('ai_max_tokens') }}'>{{- '' -}}
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('Maximum number of tokens in the AI response (100-4000)') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_system_prompt">{{ _('System Prompt') }}</legend>
+  <div class="value" style="width: 100%;">{{- '' -}}
+    <textarea name="ai_system_prompt" {{- ' ' -}}
+           aria-labelledby="pref_ai_system_prompt" {{- ' ' -}}
+           rows="1"
+           class="auto-expand-textarea"
+           style="width: 100% !important; min-height: 200px; max-width: none;"
+           placeholder="{{- _('Enter system prompt...') -}}">{{ preferences.get_value('ai_system_prompt') }}</textarea>{{- '' -}}
+  </div>
+  <div class="description">
+    {{- _('System prompt for the AI model. Supports {query} and {results}.') -}}
+  </div>
+</fieldset>{{- '' -}}
+
 <script>
 (function() {
   'use strict';
@@ -294,6 +339,21 @@
         return true;
       });
     }
+  });
+  // Auto-expand textarea
+  document.querySelectorAll('.auto-expand-textarea').forEach(function(textarea) {
+    function autoExpand() {
+      textarea.style.height = 'auto';
+      var newHeight = Math.max(200, textarea.scrollHeight + 20);
+      textarea.style.height = newHeight + 'px';
+    }
+    textarea.addEventListener('input', autoExpand);
+    // Run on page load and after form reset
+    autoExpand();
+    // Also watch for changes when form values might update
+    setTimeout(autoExpand, 100);
+    setTimeout(autoExpand, 500);
+    setTimeout(autoExpand, 1000);
   });
 })();
 </script>

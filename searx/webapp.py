@@ -781,9 +781,65 @@ def search():
         ),
         timeout_limit = sxng_request.form.get('timeout_limit', None),
         timings = engine_timings_pairs,
-        max_response_time = max_response_time
+        max_response_time = max_response_time,
+        ai_config = {
+            "enabled": sxng_request.preferences.get_value("ai_summarization_enabled"),
+            "endpoint": sxng_request.preferences.get_value("ai_api_endpoint"),
+            "model": sxng_request.preferences.get_value("ai_model"),
+            "api_key": sxng_request.preferences.get_value("ai_api_key"),
+            "num_results": int(sxng_request.preferences.get_value("ai_num_results")) if sxng_request.preferences.get_value("ai_num_results") else 5
+        }
         # fmt: on
     )
+
+
+@app.route('/generate_summary', methods=['POST'])
+def generate_summary():
+    if not flask.request.is_json:
+        return jsonify({"success": False, "summary": None, "stats": None, "error": "Content-Type must be application/json"}), 400
+
+    try:
+        data = flask.request.get_json()
+    except Exception as e:
+        return jsonify({"success": False, "summary": None, "stats": None, "error": f"Invalid JSON: {str(e)}"}), 400
+
+    query = data.get('query', '')
+    results = data.get('results', [])
+
+    if not query:
+        return jsonify({"success": False, "summary": None, "stats": None, "error": "Missing 'query' field"}), 400
+
+    if not results:
+        return jsonify({"success": False, "summary": None, "stats": None, "error": "Missing or empty 'results' field"}), 400
+
+    endpoint = sxng_request.preferences.get_value("ai_api_endpoint") if sxng_request.preferences else ""
+    model = sxng_request.preferences.get_value("ai_model") if sxng_request.preferences else ""
+    api_key = sxng_request.preferences.get_value("ai_api_key") if sxng_request.preferences else ""
+    num_results = int(sxng_request.preferences.get_value("ai_num_results") or 5) if sxng_request.preferences else 5
+    timeout = 15 + (5 * num_results)
+
+    if not endpoint or not model:
+        return jsonify({"success": False, "summary": None, "stats": None, "error": "AI summarizer not configured"}), 503
+
+    try:
+        from searx.ai_summarizer import generate_summary_sync
+        result = generate_summary_sync(
+            results=results,
+            query=query,
+            endpoint=endpoint,
+            model=model,
+            api_key=api_key,
+            timeout=timeout,
+        )
+        return jsonify({
+            "success": result.get("success", False),
+            "summary": result.get("summary"),
+            "stats": result.get("stats"),
+            "error": result.get("error"),
+        })
+    except Exception as e:
+        logger.exception("Error generating summary")
+        return jsonify({"success": False, "summary": None, "stats": None, "error": str(e)}), 500
 
 
 @app.route('/about', methods=['GET'])

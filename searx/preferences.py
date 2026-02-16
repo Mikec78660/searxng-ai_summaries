@@ -488,6 +488,26 @@ class Preferences:
                 settings['ui']['url_formatting'],
                 choices=['pretty', 'full', 'host']
             ),
+            'ai_summarization_enabled': BooleanSetting(
+                False,
+                locked=is_locked('ai_summarization_enabled')
+            ),
+            'ai_api_endpoint': StringSetting(
+                '',
+                locked=is_locked('ai_api_endpoint')
+            ),
+            'ai_api_key': StringSetting(
+                '',
+                locked=is_locked('ai_api_key')
+            ),
+            'ai_model': StringSetting(
+                '',
+                locked=is_locked('ai_model')
+            ),
+            'ai_num_results': StringSetting(
+                '',
+                locked=is_locked('ai_num_results')
+            ),
             # fmt: on
         }
 

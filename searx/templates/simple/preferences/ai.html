@@ -1,0 +1,299 @@
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_summarization_enabled">{{ _('AI Summarization') }}</legend>{{- '' -}}
+  <p class="value">{{- '' -}}
+    <input type="checkbox" {{- ' ' -}}
+           name="ai_summarization_enabled" {{- ' ' -}}
+           aria-labelledby="pref_ai_summarization_enabled" {{- ' ' -}}
+           class="checkbox-onoff" {{- ' ' -}}
+           {%- if preferences.get_value('ai_summarization_enabled') -%}
+             checked
+           {%- endif -%}{{- ' ' -}}
+           >{{- '' -}}
+  </p>{{- '' -}}
+  <div class="description">
+    {{- _('Enable AI-powered result summarization') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_api_endpoint">{{ _('AI API Endpoint') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <input name="ai_api_endpoint" {{- ' ' -}}
+           id="ai_api_endpoint" {{- ' ' -}}
+           aria-labelledby="pref_ai_api_endpoint" {{- ' ' -}}
+           type="text" {{- ' ' -}}
+           autocomplete="off" spellcheck="false" autocorrect="off" {{- ' ' -}}
+           placeholder="{{- _('https://api.openai.com/v1/chat/completions') -}}"{{- ' ' -}}
+           value='{{ preferences.get_value('ai_api_endpoint') }}'>{{- '' -}}
+    <span id="ai_endpoint_error" class="error" style="display:none; color: #c00; font-size: 0.9em;"></span>
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('URL of the AI API endpoint for summarization') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_api_key">{{ _('AI API Key') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <input name="ai_api_key" {{- ' ' -}}
+           aria-labelledby="pref_ai_api_key" {{- ' ' -}}
+           type="password" {{- ' ' -}}
+           autocomplete="off" spellcheck="false" autocorrect="off" {{- ' ' -}}
+           placeholder="{{- _('Enter your API key') -}}"{{- ' ' -}}
+           value='{{ preferences.get_value('ai_api_key') }}'>{{- '' -}}
+    <button type="button" id="load_models_btn" class="button" style="margin-left: 8px; vertical-align: middle;">{{- _('Load Models') -}}</button>
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('API key for authenticating with the AI service') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_model">{{ _('AI Model') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <select name="ai_model" id="ai_model" aria-labelledby="pref_ai_model" data-selected-model="{{ preferences.get_value('ai_model') or '' }}">{{- '' -}}
+      <option value="" disabled selected>{{- _('Click "Load Models" to fetch available models') -}}</option>
+    </select>
+    <span id="ai_model_error" class="error" style="display:none; color: #c00; font-size: 0.9em;"></span>
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('Select the AI model to use for summarization') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<fieldset>{{- '' -}}
+  <legend id="pref_ai_num_results">{{ _('Number of Results to Summarize') }}</legend>{{- '' -}}
+  <div class="value">{{- '' -}}
+    <input name="ai_num_results" {{- ' ' -}}
+           aria-labelledby="pref_ai_num_results" {{- ' ' -}}
+           type="number" {{- ' ' -}}
+           min="1" {{- ' ' -}}
+           max="20" {{- ' ' -}}
+           value='{{ preferences.get_value('ai_num_results') }}'>{{- '' -}}
+  </div>{{- '' -}}
+  <div class="description">
+    {{- _('Number of search results to include in the summary (1-20)') -}}
+  </div>{{- '' -}}
+</fieldset>{{- '' -}}
+
+<script>
+(function() {
+  'use strict';
+
+  function showEndpointError(message) {
+    const errorSpan = document.getElementById('ai_endpoint_error');
+    if (errorSpan) {
+      errorSpan.textContent = message;
+      errorSpan.style.display = 'inline';
+    }
+  }
+
+  function hideEndpointError() {
+    const errorSpan = document.getElementById('ai_endpoint_error');
+    if (errorSpan) {
+      errorSpan.style.display = 'none';
+    }
+  }
+
+  function showModelError(message) {
+    const errorSpan = document.getElementById('ai_model_error');
+    if (errorSpan) {
+      errorSpan.textContent = message;
+      errorSpan.style.display = 'inline';
+    }
+  }
+
+  function hideModelError() {
+    const errorSpan = document.getElementById('ai_model_error');
+    if (errorSpan) {
+      errorSpan.style.display = 'none';
+    }
+  }
+
+  function populateModelSelect(models, selectedModel) {
+    const modelSelect = document.getElementById('ai_model');
+    modelSelect.innerHTML = '';
+    if (!models || models.length === 0) {
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.textContent = 'No models available';
+      defaultOpt.disabled = true;
+      modelSelect.appendChild(defaultOpt);
+      return;
+    }
+    // Add default placeholder option
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- Select a model --';
+    defaultOpt.disabled = true;
+    modelSelect.appendChild(defaultOpt);
+    
+    models.forEach(function(model) {
+      const option = document.createElement('option');
+      option.value = model;
+      option.textContent = model;
+      if (model === selectedModel) {
+        option.selected = true;
+      }
+      modelSelect.appendChild(option);
+    });
+  }
+
+  function getStoredModel() {
+    const modelSelect = document.getElementById('ai_model');
+    return modelSelect.dataset.selectedModel || '';
+  }
+
+  async function fetchModels() {
+    const endpointInput = document.getElementById('ai_api_endpoint');
+    const endpoint = endpointInput.value;
+    const loadBtn = document.getElementById('load_models_btn');
+    
+    if (!endpoint || endpoint.trim() === '') {
+      showEndpointError('Please enter an API endpoint first');
+      return;
+    }
+
+    // Show loading state
+    loadBtn.disabled = true;
+    loadBtn.textContent = 'Loading...';
+    hideEndpointError();
+    hideModelError();
+
+    // Normalize endpoint - remove trailing slash and /v1 suffix if present
+    let normalizedEndpoint = endpoint.trim();
+    if (normalizedEndpoint.endsWith('/')) {
+      normalizedEndpoint = normalizedEndpoint.slice(0, -1);
+    }
+    // Remove /v1 suffix if present (user may enter with or without it)
+    if (normalizedEndpoint.endsWith('/v1')) {
+      normalizedEndpoint = normalizedEndpoint.slice(0, -3);
+    }
+
+    const modelsUrl = normalizedEndpoint + '/v1/models';
+
+    try {
+      console.log('Fetching models from:', modelsUrl);
+
+      const response = await fetch(modelsUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      console.log('Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch models: ' + response.status + ' ' + response.statusText);
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data);
+      let models = [];
+
+      // Handle OpenAI-compatible response format: { "data": [{ "id": "model-name" }, ...] }
+      if (data.data && Array.isArray(data.data)) {
+        models = data.data.map(function(item) { return item.id; });
+      } else if (Array.isArray(data)) {
+        // Handle array response format
+        models = data.map(function(item) {
+          return typeof item === 'string' ? item : item.id;
+        });
+      }
+
+      console.log('Found models:', models);
+
+      // Send models to backend endpoint
+      try {
+        const backendResponse = await fetch('/preferences/ai_models', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ models: models })
+        });
+
+        const backendData = await backendResponse.json();
+        console.log('Backend response:', backendData);
+
+        if (backendData.success === true) {
+          // Use models from backend response
+          if (backendData.models && Array.isArray(backendData.models)) {
+            models = backendData.models;
+            console.log('Using models from backend:', models);
+          }
+        } else if (backendData.success === false) {
+          // Show error but still use the fetched models
+          console.error('Backend error:', backendData.error);
+          showModelError('Backend error: ' + (backendData.error || 'Unknown error'));
+        }
+      } catch (backendError) {
+        console.error('Error sending models to backend:', backendError);
+        // Continue with fetched models even if backend call fails
+      }
+
+      if (models.length > 0) {
+        hideEndpointError();
+        // Preserve saved selection from data attribute
+        const modelSelect = document.getElementById('ai_model');
+        const currentValue = modelSelect.dataset.selectedModel || modelSelect.value;
+        populateModelSelect(models, currentValue);
+      } else {
+        throw new Error('No models found in response');
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      showEndpointError('Could not fetch models: ' + error.message + ' (Check console for details)');
+      populateModelSelect([], '');
+    } finally {
+      // Restore button state
+      loadBtn.disabled = false;
+      loadBtn.textContent = 'Load Models';
+    }
+  }
+
+  // Set up button click handler
+  document.addEventListener('DOMContentLoaded', function() {
+    const loadBtn = document.getElementById('load_models_btn');
+    if (loadBtn) {
+      loadBtn.addEventListener('click', fetchModels);
+    }
+
+    // Auto-load models if API endpoint is already configured
+    const endpointInput = document.getElementById('ai_api_endpoint');
+    if (endpointInput && endpointInput.value) {
+      fetchModels();
+    }
+
+    // Set up form validation
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const modelSelect = document.getElementById('ai_model');
+        const selectedModel = modelSelect.value;
+        
+        // Only validate if AI summarization is enabled
+        const enabledCheckbox = document.querySelector('input[name="ai_summarization_enabled"]');
+        if (enabledCheckbox && enabledCheckbox.checked) {
+          if (!selectedModel || selectedModel === '') {
+            e.preventDefault();
+            showModelError('Please select a model');
+            modelSelect.focus();
+            return false;
+          }
+        }
+        hideModelError();
+        return true;
+      });
+    }
+  });
+})();
+</script>

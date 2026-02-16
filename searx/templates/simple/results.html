@@ -41,6 +41,31 @@
           </div>
         {%- endif -%}
 
+        <div id="ai-summary-sidebar" data-config='{{ ai_config | tojson }}'>
+          <details id="ai-summary-toggle" class="sidebar-collapsible" open>
+            <summary class="title">
+              <span id="ai-summary-title">{{ _('AI Summary') }}</span>
+              <span id="ai-summary-status"></span>
+            </summary>
+            <div id="ai-summary-content" class="ai-summary-body">
+            </div>
+          </details>
+          <details id="ai-stats-toggle" class="sidebar-collapsible">
+            <summary class="title">{{ _('AI Stats') }}</summary>
+            <div id="ai-stats-content" class="ai-stats-body">
+              <table class="ai-stats-table">
+                <tbody>
+                  <tr><td>{{ _('Model') }}</td><td id="ai-stat-model">-</td></tr>
+                  <tr><td>{{ _('Prompt Tokens') }}</td><td id="ai-stat-prompt">-</td></tr>
+                  <tr><td>{{ _('Completion Tokens') }}</td><td id="ai-stat-completion">-</td></tr>
+                  <tr><td>{{ _('Total Tokens') }}</td><td id="ai-stat-total">-</td></tr>
+                  <tr><td>{{ _('Response Time') }}</td><td id="ai-stat-time">-</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
         {%- if suggestions -%}
           {%- include 'simple/elements/suggestions.html' -%}
         {%- endif -%}
@@ -145,5 +170,135 @@
         </div>
     </nav>
     {% endif %}
-</div>
+ </div>
+
+{%- if ai_config.endpoint and ai_config.model -%}
+<script>
+(function() {
+  var sidebarEl = document.getElementById('ai-summary-sidebar');
+  if (!sidebarEl) return;
+
+  var toggle = document.getElementById('ai-summary-toggle');
+  var content = document.getElementById('ai-summary-content');
+  var status = document.getElementById('ai-summary-status');
+
+  var aiConfig = {};
+  try {
+    aiConfig = JSON.parse(sidebarEl.dataset.config || '{}');
+    console.log('AI Config:', aiConfig);
+  } catch (e) {
+    console.error('Failed to parse AI config:', e);
+    return;
+  }
+
+  if (!aiConfig.endpoint || !aiConfig.model) {
+    console.log('AI config missing - endpoint:', aiConfig.endpoint, 'model:', aiConfig.model);
+    content.innerHTML = '<p class="ai-summary-placeholder">{{ _("AI summary is not configured. Set up API endpoint and model in preferences.") }}</p>';
+    return;
+  }
+
+  console.log('AI config looks good, checking toggle state...');
+  console.log('toggle.open:', toggle.open);
+  console.log('content.dataset.generated:', content.dataset.generated);
+
+  toggle.addEventListener('toggle', function(e) {
+    console.log('Toggle event, open:', toggle.open);
+    if (toggle.open && !content.dataset.generated) {
+      generateSummary();
+    }
+  });
+
+  if (toggle.open && !content.dataset.generated) {
+    console.log('Calling generateSummary directly...');
+    generateSummary();
+  }
+
+  function generateSummary() {
+    console.log('Generating summary with config:', aiConfig);
+    content.innerHTML = '<p class="ai-summary-loading">{{ _("Generating summary...") }}</p>';
+    status.innerHTML = '<span class="loading-spinner"></span>';
+
+    var searchResults = [];
+    var resultsContainer = document.querySelectorAll('#urls .result');
+    console.log('Found results:', resultsContainer.length);
+    
+    resultsContainer.forEach(function(result, index) {
+      if (aiConfig.num_results && index >= aiConfig.num_results) return;
+
+      var titleEl = result.querySelector('h3 a');
+      var contentEl = result.querySelector('.content');
+      var urlEl = result.querySelector('.url_wrapper');
+
+      searchResults.push({
+        title: titleEl ? titleEl.textContent : '',
+        content: contentEl ? contentEl.textContent : '',
+        url: urlEl ? urlEl.textContent : ''
+      });
+    });
+    
+    console.log('Search results to summarize:', searchResults);
+
+    fetch('{{ url_for('generate_summary') }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        query: document.querySelector('input[name="q"]').value,
+        results: searchResults.slice(0, aiConfig.num_results)
+      })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        content.innerHTML = '<div class="ai-summary-text">' + convertMarkdown(data.summary) + '</div>';
+        content.dataset.generated = 'true';
+        status.innerHTML = '';
+
+        if (data.stats) {
+          document.getElementById('ai-stat-model').textContent = data.stats.model || '-';
+          document.getElementById('ai-stat-prompt').textContent = data.stats.prompt_tokens || '0';
+          document.getElementById('ai-stat-completion').textContent = data.stats.completion_tokens || '0';
+          document.getElementById('ai-stat-total').textContent = data.stats.total_tokens || '0';
+          document.getElementById('ai-stat-time').textContent = data.stats.response_time ? data.stats.response_time + 's' : '-';
+        }
+      } else {
+        content.innerHTML = '<p class="ai-summary-error">{{ _("Error: ") }}' + (data.error || 'Unknown error') + '</p>';
+        status.innerHTML = '';
+      }
+    })
+    .catch(function(err) {
+      content.innerHTML = '<p class="ai-summary-error">{{ _("Failed to generate summary") }}</p>';
+      status.innerHTML = '';
+    });
+  }
+
+  function convertMarkdown(html) {
+    html = html.replace(/<tex>[\s\S]*?<\/tex>/gi, '');
+    html = html.replace(/<reply>[\s\S]*?<\/reply>/gi, '');
+    html = html.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    html = html.replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '');
+    html = html.trim();
+    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+    html = html.replace(/^(\d+)\.\s+(.*)$/gm, '<li>$2</li>');
+    html = html.replace(/^[\-\*]\s+(.*)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+      return '<ul>' + match + '</ul>';
+    });
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+    if (!html.startsWith('<')) {
+      html = '<p>' + html + '</p>';
+    }
+    return html;
+  }
+})();
+</script>
+{%- endif -%}
+
 {% endblock %}

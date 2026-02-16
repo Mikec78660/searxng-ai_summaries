@@ -1,0 +1,30 @@
+{% from 'simple/icons.html' import icon_small %}
+<div class="ai-summary" {% if answer.request_id %}data-streaming="true" data-request-id="{{ answer.request_id }}"{% endif %}>
+  <div class="ai-summary-header">
+    {{ icon_small('information-circle') }}
+    <span class="ai-summary-title">{{ answer.service | default('AI Summary') }}</span>
+    {% if answer.streaming %}
+    <span class="ai-summary-loading" id="ai-summary-spinner">
+      <span class="spinner"></span>
+      <span class="loading-text">{{ _('Generating summary...') }}</span>
+    </span>
+    {% endif %}
+  </div>
+  <div class="ai-summary-content" id="ai-summary-content">
+    {%- if answer.answer -%}
+      {{ answer.answer }}
+    {%- elif answer.streaming -%}
+      <span class="ai-summary-placeholder">{{ _('Waiting for AI summary...') }}</span>
+    {%- else -%}
+      <span class="ai-summary-empty">{{ _('No summary available') }}</span>
+    {%- endif -%}
+  </div>
+  {%- if answer.url -%}
+    <a href="{{ answer.url }}" class="answer-url"
+       {%- if results_on_new_tab %} target="_blank" rel="noopener noreferrer"
+       {%- else -%} rel="noreferrer"
+       {%- endif -%}>
+      {{ _('Source') }}
+    </a>
+  {%- endif -%}
+</div>

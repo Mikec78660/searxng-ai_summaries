@@ -651,6 +651,63 @@ summary.title {
   padding-bottom: 0.5em;
 }
 
+.ai-summary-body,
+.ai-stats-body {
+  padding: @result-padding;
+  padding-top: 0.5em;
+  font-size: 0.9em;
+}
+
+.ai-summary-text {
+  line-height: 1.5;
+  color: var(--color-sidebar-font);
+}
+
+.ai-summary-loading,
+.ai-summary-error,
+.ai-summary-placeholder {
+  padding: 0.5em 0;
+  font-style: italic;
+  color: var(--color-sidebar-font);
+}
+
+.ai-summary-error {
+  color: #cc0000;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-sidebar-border);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.ai-stats-table td {
+  padding: 0.25em 0;
+  border-bottom: 1px solid var(--color-sidebar-border);
+}
+
+.ai-stats-table td:first-child {
+  font-weight: bold;
+}
+
 #sidebar-end-collapsible {
   border-bottom: 1px solid var(--color-sidebar-border);
   width: 100%;

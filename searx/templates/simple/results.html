@@ -60,6 +60,7 @@
                   <tr><td>{{ _('Completion Tokens') }}</td><td id="ai-stat-completion">-</td></tr>
                   <tr><td>{{ _('Total Tokens') }}</td><td id="ai-stat-total">-</td></tr>
                   <tr><td>{{ _('Response Time') }}</td><td id="ai-stat-time">-</td></tr>
+                  <tr><td>{{ _('Tokens/sec') }}</td><td id="ai-stat-tps">-</td></tr>
                 </tbody>
               </table>
             </div>
@@ -262,6 +263,10 @@
           document.getElementById('ai-stat-completion').textContent = data.stats.completion_tokens || '0';
           document.getElementById('ai-stat-total').textContent = data.stats.total_tokens || '0';
           document.getElementById('ai-stat-time').textContent = data.stats.response_time ? data.stats.response_time + 's' : '-';
+          var tps = (data.stats.response_time && data.stats.total_tokens) 
+            ? (data.stats.total_tokens / data.stats.response_time).toFixed(2) 
+            : '-';
+          document.getElementById('ai-stat-tps').textContent = tps;
         }
       } else {
         content.innerHTML = '<p class="ai-summary-error">{{ _("Error: ") }}' + (data.error || 'Unknown error') + '</p>';
@@ -280,7 +285,23 @@
     html = html.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
     html = html.replace(/<tool_code>[\s\S]*?<\/tool_code>/gi, '');
     html = html.trim();
+    
+    // Convert triple backticks to code blocks
+    html = html.replace(/```bash\n([\s\S]*?)```/g, '___PRE_CODE_START___$1___PRE_CODE_END___');
+    html = html.replace(/```\n([\s\S]*?)```/g, '___PRE_CODE_START___$1___PRE_CODE_END___');
+    html = html.replace(/```(\w+)\n([\s\S]*?)```/g, '___PRE_CODE_START___$2___PRE_CODE_END___');
+    
+    // Convert single backticks to inline code
+    html = html.replace(/`([^`]+)`/g, '___CODE_START___$1___CODE_END___');
+    
+    // Now escape HTML
     html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Restore code tags
+    html = html.replace(/___PRE_CODE_START___/g, '<pre><code>');
+    html = html.replace(/___PRE_CODE_END___/g, '</code></pre>');
+    html = html.replace(/___CODE_START___/g, '<code>');
+    html = html.replace(/___CODE_END___/g, '</code>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');

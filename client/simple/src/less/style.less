@@ -663,6 +663,34 @@ summary.title {
   color: var(--color-sidebar-font);
 }
 
+.ai-summary-text pre,
+.ai-summary-text pre code,
+.ai-summary-text pre * {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-family: monospace;
+  font-size: 14px !important;
+  line-height: 1.4;
+  padding: 0.75em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.ai-summary-text code {
+  font-family: monospace;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.ai-summary-text pre code {
+  padding: 0;
+  background: none;
+}
+
 .ai-summary-loading,
 .ai-summary-error,
 .ai-summary-placeholder {

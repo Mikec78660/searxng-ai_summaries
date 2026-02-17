@@ -35,8 +35,8 @@ The following options can be configured in the Preferences tab:
    - Default: `False` (disabled)
 
 2. **API Endpoint** (`ai_api_endpoint`)
-   - The URL of your AI API endpoint (e.g., `http://localhost:11434/v1/chat/completions` for Ollama)
-   - Must be an OpenAI-compatible API endpoint
+   - The URL of your AI API endpoint (e.g., `http://localhost:11434` for Ollama)
+   - Must be an OpenAI-compatible API endpoint (e.g., 'ollama', 'llama.cpp', 'vllm')
 
 3. **API Key** (`ai_api_key`)
    - Your API key for authentication

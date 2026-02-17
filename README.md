@@ -43,7 +43,7 @@ The following options can be configured in the Preferences tab:
    - Can be left empty for local endpoints like Ollama
 
 4. **Model** (`ai_model`)
-   - The model ID to use for summarization (e.g., `gpt-4`, `llama3`, `mistral`)
+   - The model ID to use for summarization. You will want to use a model with tool use capabilities. If you use for example llama3 it wil only give you a summary of the summaries. It will be fast and you might get correct results but it can also be old information. (e.g., `gpt-4`, `gpt-oss`, `mistral`)
 
 5. **Number of Results to Summarize** (`ai_num_results`)
    - How many search results to include in the summary

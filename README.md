@@ -33,6 +33,7 @@ The following options can be configured in the Preferences tab:
 1. **Enable AI Summarization** (`ai_summarization_enabled`)
    - Boolean toggle to enable or disable AI summarization
    - Default: `False` (disabled)
+   - If disabled but configured you can toggle the AI Summary in the side panel to request a summary for the current search results.
 
 2. **API Endpoint** (`ai_api_endpoint`)
    - The URL of your AI API endpoint (e.g., `http://localhost:11434` for Ollama)

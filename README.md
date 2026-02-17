@@ -18,6 +18,8 @@ The original SearXNG project is available at: https://github.com/searxng/searxng
   Your browser does not support the video tag.
 </video>
 
+[Download demo video](./docs/assets/demo.mp4)
+
 ## Features
 
 This fork extends SearXNG with the following AI summarization capabilities:
